@@ -1,8 +1,6 @@
 package me.lightsmp;
 
 import me.lightsmp.listeners.*;
-import me.lightsmp.weapons.*;
-import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class Main extends JavaPlugin {
@@ -13,18 +11,15 @@ public class Main extends JavaPlugin {
         instance = this;
         saveDefaultConfig();
         
-        // Register Managers & Recipes
-        WeaponManager.init();
-        
-        // Register Listeners
+        // Listeners Registration
         getServer().getPluginManager().registerEvents(new CraftingSystem(), this);
         getServer().getPluginManager().registerEvents(new MaceAbility(), this);
         getServer().getPluginManager().registerEvents(new ElytraAbility(), this);
         getServer().getPluginManager().registerEvents(new SpearAbility(), this);
-        getServer().getPluginManager().registerEvents(new VanillaLimiter(), this);
+        getServer().getPluginManager().registerEvents(new VanillaControl(), this);
 
-        getLogger().info("LightSmp Plugin Started - Ready for War!");
+        getLogger().info("LightSmp Active: Weapons, Recipes, and Vanilla Disabler Loaded!");
     }
 
     public static Main getInstance() { return instance; }
-  }
+}
