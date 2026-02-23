@@ -5,52 +5,52 @@ import org.bukkit.*;
 import org.bukkit.boss.*;
 import org.bukkit.entity.*;
 import org.bukkit.event.*;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public class CraftingSystem implements Listener {
 
     @EventHandler
-    public void onCraft(InventoryClickEvent e) {
-        if (e.getSlotType() != InventoryType.SlotType.RESULT) return;
-        ItemStack item = e.getCurrentItem();
-        if (item == null || !item.hasItemMeta() || !item.getItemMeta().hasCustomModelData()) return;
+    public void onCraft(CraftItemEvent e) {
+        ItemStack res = e.getRecipe().getResult();
+        if (!res.hasItemMeta() || !res.getItemMeta().hasCustomModelData()) return;
 
-        e.setCancelled(true); // Default craft cancel
+        e.setCancelled(true);
         Player p = (Player) e.getWhoClicked();
         e.getInventory().clear();
         
-        start10MinEvent(p, item);
-    }
+        Location loc = p.getLocation();
+        String name = res.getItemMeta().getDisplayName();
+        
+        // Global BossBar
+        BossBar bar = Bukkit.createBossBar(ChatColor.YELLOW + "Crafting " + name, BarColor.RED, BarStyle.SOLID);
+        Bukkit.getOnlinePlayers().forEach(bar::addPlayer);
 
-    private void start10MinEvent(Player p, ItemStack item) {
-        Location loc = p.getLocation().add(0, 1, 0);
-        BossBar bar = Bukkit.createBossBar(ChatColor.RED + "Crafting: " + item.getItemMeta().getDisplayName(), BarColor.RED, BarStyle.SOLID);
-        for (Player all : Bukkit.getOnlinePlayers()) {
-            bar.addPlayer(all);
-            all.sendMessage(ChatColor.YELLOW + "ALERT! " + p.getName() + " is crafting a Legendary Weapon at " + loc.getBlockX() + ", " + loc.getBlockZ());
-        }
-
-        ArmorStand as = loc.getWorld().spawn(loc, ArmorStand.class, s -> {
-            s.setGravity(false); s.setVisible(false); s.getEquipment().setHelmet(item);
+        // Floating Item Animation
+        ArmorStand as = loc.getWorld().spawn(loc.add(0.5, 1, 0.5), ArmorStand.class, s -> {
+            s.setVisible(false); s.setGravity(false); s.getEquipment().setHelmet(res);
         });
 
         new BukkitRunnable() {
-            int time = 600; // 10 minutes
+            int ticks = 12000; // 10 Minutes = 12000 Ticks
             @Override
             public void run() {
-                if (time <= 0) {
-                    loc.getWorld().dropItemNaturally(loc, item);
+                if (ticks <= 0) {
+                    loc.getWorld().dropItemNaturally(loc, res);
                     loc.getWorld().strikeLightningEffect(loc);
                     bar.removeAll(); as.remove(); cancel(); return;
                 }
-                as.teleport(as.getLocation().add(0, 0.016, 0)); // Moves up 10m total
-                as.setRotation(as.getLocation().getYaw() + 15, 0);
-                bar.setProgress(time / 600.0);
-                time--;
+                
+                // Animation & BossBar Update
+                as.teleport(as.getLocation().add(0, 0.0008, 0).setDirection(as.getLocation().getDirection().rotateAroundY(0.1)));
+                if (ticks % 20 == 0) {
+                    int seconds = ticks / 20;
+                    bar.setTitle(ChatColor.GOLD + name + ChatColor.WHITE + " at " + ChatColor.RED + loc.getBlockX() + " " + loc.getBlockZ() + ChatColor.GRAY + " (" + seconds + "s)");
+                    bar.setProgress(ticks / 12000.0);
+                }
+                ticks--;
             }
-        }.runTaskTimer(Main.getInstance(), 0, 20L);
+        }.runTaskTimer(Main.getInstance(), 0, 1L);
     }
-                                           }
+}
